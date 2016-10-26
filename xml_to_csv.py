@@ -11,12 +11,18 @@ from unicodecsv import DictWriter
 # In[82]:
 page_group = 0
 
+def text_or_none(el):
+    if el is None:
+        return None
+    else:
+        return el.text
+
 def parse_page(xml):
     root_el = etree.fromstring(xml)
     page_res = {}
-    page_res['page_title'] = root_el.find('title').text
-    page_res['page_ns'] = root_el.find('ns').text
-    page_res['page_id'] = root_el.find('id').text
+    page_res['page_title'] = text_or_none(root_el.find('title'))
+    page_res['page_ns'] = text_or_none(root_el.find('ns'))
+    page_res['page_id'] = text_or_none(root_el.find('id'))
     
     global page_group
     page_group = page_group + 1
@@ -29,22 +35,24 @@ def parse_page(xml):
 
     for rev_el in revisions:
         revision_res = dict(page_res)
-        revision_res['revision_id'] = rev_el.find('id').text
+        revision_res['revision_id'] = text_or_none(rev_el.find('id'))
 
         contributor_el = rev_el.find('contributor')
         username = contributor_el.find('username')
 
         if username is not None:
             revision_res['username'] = username.text
-            revision_res['user_id'] = contributor_el.find('id').text
+            revision_res['user_id'] = text_or_none(contributor_el.find('id'))
             revision_res['anonimous_ip'] = None
         else:
             revision_res['username'] = None
             revision_res['user_id'] = None
-            revision_res['anonimous_ip'] = contributor_el.find('ip').text
+            revision_res['anonimous_ip'] = text_or_none(contributor_el.find('ip'))
 
-        revision_res['revision_comment'] = rev_el.find('comment').text
-        revision_res['revision_text'] = rev_el.find('text').text
+        revision_res['revision_comment'] = text_or_none(rev_el.find('comment'))
+        revision_res['revision_timestamp'] = text_or_none(rev_el.find('timestamp'))
+        # a lot of json - let's put it into a db
+        # revision_res['revision_text'] = text_or_none(rev_el.find('text'))
         results.append(revision_res)
     return results
 
@@ -74,8 +82,8 @@ def convert_file(file_path):
     
     xml_pages = stream_pages(file_path)
     
-    fieldnames = [u'revision_id', u'revisions_in_group', u'revision_text', u'revision_comment',
-                  u'page_id', u'page_group', u'page_ns', u'page_title', u'page_group', 
+    fieldnames = [u'revision_id', u'revisions_in_group', u'revision_comment', u'revision_timestamp',
+                  u'page_id', u'page_group', u'page_ns', u'page_title', 
                   u'anonimous_ip', u'user_id', u'username']
 
     with open(result_path, 'w') as csv_file:

@@ -127,7 +127,7 @@ page_reverted_edits = Counter()
 for f in feather_files:
     print 'processing %s' % f
 
-    yearmonth = yearmonth_re.findall(feather_files[0])[0]
+    yearmonth = yearmonth_re.findall(f)[0]
 
     df = feather.read_dataframe(f)
 

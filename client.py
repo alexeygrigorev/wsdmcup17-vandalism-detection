@@ -1,6 +1,7 @@
 import sys
 import re
 
+import cPickle
 from StringIO import StringIO
 from lxml import etree
 
@@ -9,6 +10,10 @@ from unicodecsv import reader
 from twisted.protocols.basic import IntNStringReceiver
 from twisted.internet.protocol import Protocol, ClientFactory
 from twisted.internet import reactor
+
+import numpy as np
+import scipy.sparse as sp
+
 
 ### settings
 
@@ -23,12 +28,58 @@ access_token = args[2] #'wtf-twisted-py'
 
 ### the classifier 
 
+print 'reading vectorizers...'
+with open('models/title_vec.bin', 'rb') as f:
+    title_vec = cPickle.load(f)
+
+with open('models/user_vec.bin', 'rb') as f:
+    user_vec = cPickle.load(f)
+
+print 'reading the model...'
+with open('models/title_user_svm_946.bin', 'rb') as f:
+    svm = cPickle.load(f)
+
+
 c = 0
 
+def title_ohe_features(rev):
+    return title_vec.transform([rev['page_title']])
+
+
+def paths(tokens):
+    all_paths = ['_'.join(tokens[0:(i+1)]) for i in range(len(tokens))]
+    return ' '.join(all_paths)
+
+def ip_path_features(ip):
+    if not ip:
+        return ''
+    
+    if '.' in ip:
+        return paths(ip.split('.'))
+    elif ':' in ip:
+        return paths(ip.split(':'))
+    return ip
+
+def stringify_dict(d):
+    dict_str = ' '.join('%s=%s' % (k, v.replace(' ', '_')) for (k, v) in d.items() if v)
+    return dict_str
+
+def user_ohe_features(rev, meta):
+    ip_paths = ip_path_features(rev['anonimous_ip'])
+    meta_string = stringify_dict(meta)
+    
+    user_id = 'user_id=' + rev['user_id']
+    user_string = user_id + ' ' + ip_paths + ' ' + meta_string
+    return user_vec.transform([user_string])
+
+
 def classifier(meta, rev):
-    global c
-    c = c + 1
-    return c / 1000.0
+    X_title = title_ohe_features(rev)
+    X_user = user_ohe_features(rev, meta)
+    X = sp.hstack([X_title, X_user], format='csr')
+
+    scores = svm.decision_function(X)
+    return scores[0]
 
 
 ### data parsing
@@ -63,7 +114,7 @@ def revision_info(rev_xml):
         revision_res['anonimous_ip'] = None
     else:
         revision_res['username'] = None
-        revision_res['user_id'] = None
+        revision_res['user_id'] = '-1'
         revision_res['anonimous_ip'] = text_or_none(contributor_el.find('ip'))
 
     revision_res['revision_comment'] = text_or_none(rev_el.find('comment'))
@@ -76,6 +127,7 @@ def revision_info(rev_xml):
 ### socket reading & wring
 
 class EchoClient(IntNStringReceiver):
+    MAX_LENGTH = 9999999
     structFormat = "!i"
     prefixLength = 4
 
@@ -91,16 +143,26 @@ class EchoClient(IntNStringReceiver):
         self.transport.write(data + '\r\n')        
 
     def connectionLost(self, reason):
+        print self.meta
+        print self.rev
         print "connection lost:", reason
+    
+    def lengthLimitExceeded(self, length):
+        raise Exception("the input is too large: %d" % length)
+
 
     def stringReceived(self, data):
         if self.meta is None:
-            self.meta = data
+            self.meta = unicode(data, 'utf-8')
         elif self.rev is None:
-            self.rev = data
-            self.process_data(self.meta, self.rev)
-            self.meta = None
-            self.rev = None
+            try:
+                self.rev = unicode(data, 'utf-8')
+                self.process_data(self.meta, self.rev)
+                self.meta = None
+                self.rev = None
+            except Exception, e:
+                print e
+                raise e
         else:
             raise Exception('Unexpected state: both meta and rev are not None')
 
@@ -166,11 +228,11 @@ class EchoFactory(ClientFactory):
     protocol = EchoClient
 
     def clientConnectionFailed(self, connector, reason):
-        print "Connection failed - goodbye!"
+        print "Connection failed - goodbye!", reason
         reactor.stop()
 
     def clientConnectionLost(self, connector, reason):
-        print "Connection lost - goodbye!"
+        print "Connection lost - goodbye!", reason
         reactor.stop()
 
 

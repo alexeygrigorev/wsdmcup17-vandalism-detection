@@ -143,13 +143,13 @@ class EchoClient(IntNStringReceiver):
         self.transport.write(data + '\r\n')        
 
     def connectionLost(self, reason):
-        print self.meta
-        print self.rev
         print "connection lost:", reason
+        print 'meta:', self.meta
+        print 'rev:', self.rev
+
     
     def lengthLimitExceeded(self, length):
         raise Exception("the input is too large: %d" % length)
-
 
     def stringReceived(self, data):
         if self.meta is None:
@@ -161,7 +161,7 @@ class EchoClient(IntNStringReceiver):
                 self.meta = None
                 self.rev = None
             except Exception, e:
-                print e
+                print 'got exception in stringReceived:', e
                 raise e
         else:
             raise Exception('Unexpected state: both meta and rev are not None')
@@ -175,12 +175,18 @@ class EchoClient(IntNStringReceiver):
             else:
                 rev_id, score = self.process_data_others(meta, rev)
 
-            print rev_id
-            self.write('%s,%f' % (rev_id, score))
+            if rev_id is not None:
+                print 'processed rev_id=%s' % rev_id
+                self.write('%s,%f' % (rev_id, score))
+            else:
+                print 'rev_id is None! something went wrong!'
+                print 'meta:', meta
+                print 'rev:', rev
+            
         except Exception, e:
-            print e
-            print meta
-            print rev
+            print 'got exception in process_data:', e
+            print 'meta:', meta
+            print 'rev:', rev
             raise e
 
 

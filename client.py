@@ -187,8 +187,9 @@ class EchoClient(IntNStringReceiver):
             else:
                 rev_id, score = self.process_data_others(meta, rev)
 
-            if (rev_id is not None) and (rev_id % 5000 == 0):
-                print 'processed rev_id=%s' % rev_id
+            if rev_id is not None:
+                if rev_id % 5000 == 0:
+                    print 'processed rev_id =', rev_id
                 self.write('%s,%f' % (rev_id, score))
             else:
                 print >> sys.stderr, 'rev_id is None! something went wrong!'

@@ -147,24 +147,36 @@ class EchoClient(IntNStringReceiver):
         print 'meta:', self.meta
         print 'rev:', self.rev
 
-    
     def lengthLimitExceeded(self, length):
-        raise Exception("the input is too large: %d" % length)
+        self.transport.loseConnection()
+        print >> sys.stderr, "the input is too large: %d" % length
 
     def stringReceived(self, data):
         if self.meta is None:
-            self.meta = unicode(data, 'utf-8')
+            try:
+                self.meta = unicode(data, 'utf-8')
+            except Exception, e:
+                self.transport.loseConnection()
+                print >> sys.stderr, "cannot decode the meta input: %s" % meta
+                print >> sys.stderr, 'exception:', e
         elif self.rev is None:
             try:
                 self.rev = unicode(data, 'utf-8')
+            except Exception, e:
+                self.transport.loseConnection()
+                print >> sys.stderr, "cannot decode the rev input: %s" % rev
+                print >> sys.stderr, 'exception:', e
+            try:
                 self.process_data(self.meta, self.rev)
                 self.meta = None
                 self.rev = None
             except Exception, e:
-                print 'got exception in stringReceived:', e
-                raise e
+                self.transport.loseConnection()
+                print >> sys.stderr, 'got exception in stringReceived:', e    
         else:
-            raise Exception('Unexpected state: both meta and rev are not None')
+            print >> sys.stderr, 'Unexpected state: both meta and rev are not None'
+            self.transport.loseConnection()
+            
 
     def process_data(self, meta, rev):
         try:
@@ -175,18 +187,20 @@ class EchoClient(IntNStringReceiver):
             else:
                 rev_id, score = self.process_data_others(meta, rev)
 
-            if rev_id is not None:
+            if (rev_id is not None) and (rev_id % 5000 == 0):
                 print 'processed rev_id=%s' % rev_id
                 self.write('%s,%f' % (rev_id, score))
             else:
-                print 'rev_id is None! something went wrong!'
-                print 'meta:', meta
-                print 'rev:', rev
+                print >> sys.stderr, 'rev_id is None! something went wrong!'
+                print >> sys.stderr, 'meta:', meta
+                print >> sys.stderr, 'rev:', rev
+                self.transport.loseConnection()
             
         except Exception, e:
             print 'got exception in process_data:', e
             print 'meta:', meta
             print 'rev:', rev
+            self.transport.loseConnection()
             raise e
 
 

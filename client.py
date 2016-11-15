@@ -1,5 +1,6 @@
 import sys
 import re
+import traceback
 
 import cPickle
 from StringIO import StringIO
@@ -26,7 +27,7 @@ port = int(port)
 access_token = args[2] #'wtf-twisted-py'
 
 
-### the classifier 
+### the classifier
 
 print 'reading vectorizers...'
 with open('models/title_vec.bin', 'rb') as f:
@@ -53,7 +54,7 @@ def paths(tokens):
 def ip_path_features(ip):
     if not ip:
         return ''
-    
+
     if '.' in ip:
         return paths(ip.split('.'))
     elif ':' in ip:
@@ -67,7 +68,7 @@ def stringify_dict(d):
 def user_ohe_features(rev, meta):
     ip_paths = ip_path_features(rev['anonimous_ip'])
     meta_string = stringify_dict(meta)
-    
+
     user_id = 'user_id=' + rev['user_id']
     user_string = user_id + ' ' + ip_paths + ' ' + meta_string
     return user_vec.transform([user_string])
@@ -140,7 +141,7 @@ class EchoClient(IntNStringReceiver):
         self.write(access_token)
 
     def write(self, data):
-        self.transport.write(data + '\r\n')        
+        self.transport.write(data + '\r\n')
 
     def connectionLost(self, reason):
         print "connection lost:", reason
@@ -154,29 +155,31 @@ class EchoClient(IntNStringReceiver):
     def stringReceived(self, data):
         if self.meta is None:
             try:
-                self.meta = unicode(data, 'utf-8')
+                self.meta = data.decode('utf-8', 'ignore')
             except Exception, e:
                 self.transport.loseConnection()
-                print >> sys.stderr, "cannot decode the meta input: %s" % meta
+                print >> sys.stderr, "cannot decode the meta input: %s" % self.meta
                 print >> sys.stderr, 'exception:', e
+                traceback.print_exc()
         elif self.rev is None:
             try:
-                self.rev = unicode(data, 'utf-8')
+                self.rev = data.decode('utf-8', 'ignore')
             except Exception, e:
                 self.transport.loseConnection()
-                print >> sys.stderr, "cannot decode the rev input: %s" % rev
+                print >> sys.stderr, "cannot decode the rev input: %s" % self.rev
                 print >> sys.stderr, 'exception:', e
+                traceback.print_exc()
             try:
                 self.process_data(self.meta, self.rev)
                 self.meta = None
                 self.rev = None
             except Exception, e:
                 self.transport.loseConnection()
-                print >> sys.stderr, 'got exception in stringReceived:', e    
+                print >> sys.stderr, 'got exception in stringReceived:', e
         else:
             print >> sys.stderr, 'Unexpected state: both meta and rev are not None'
             self.transport.loseConnection()
-            
+
 
     def process_data(self, meta, rev):
         try:
@@ -188,7 +191,7 @@ class EchoClient(IntNStringReceiver):
                 rev_id, score = self.process_data_others(meta, rev)
 
             if rev_id is not None:
-                if rev_id % 5000 == 0:
+                if int(rev_id) % 5000 == 0:
                     print 'processed rev_id =', rev_id
                 self.write('%s,%f' % (rev_id, score))
             else:
@@ -196,9 +199,11 @@ class EchoClient(IntNStringReceiver):
                 print >> sys.stderr, 'meta:', meta
                 print >> sys.stderr, 'rev:', rev
                 self.transport.loseConnection()
-            
+
         except Exception, e:
             print 'got exception in process_data:', e
+            traceback.print_exc()
+
             print 'meta:', meta
             print 'rev:', rev
             self.transport.loseConnection()

@@ -222,8 +222,9 @@ class EchoClient(IntNStringReceiver):
         try:
             res = str_in.decode('utf-8', 'ignore')
             return res.replace(u'\ufffd', '')
-        except:
+        except Exception, e:
             print >> sys.stderr, 'cannot decode', repr(str_in)
+            print >> sys.stderr, 'decoding exception:', e
             return None
     
     def process_data_first(self, meta, rev):

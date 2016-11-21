@@ -135,7 +135,6 @@ class EchoClient(IntNStringReceiver):
     meta = None
     rev = None
     first = True
-    encode_error = False
 
     def connectionMade(self):
         print 'writing access_token'
@@ -158,7 +157,8 @@ class EchoClient(IntNStringReceiver):
             try:
                 self.meta = data.decode('utf-8', 'ignore')
             except Exception, e:
-                self.encode_error = True
+                self.meta = '_,_,,,,,,,'
+                self.encode_error_meta = True
                 print >> sys.stderr, "cannot decode the meta input: %s" % self.meta
                 print >> sys.stderr, 'exception:', e
                 traceback.print_exc()
@@ -166,7 +166,7 @@ class EchoClient(IntNStringReceiver):
             try:
                 self.rev = data.decode('utf-8', 'ignore')
             except Exception, e:
-                self.encode_error = True
+                self.encode_error_rev = True
                 print >> sys.stderr, "cannot decode the rev input: %s" % self.rev
                 print >> sys.stderr, 'exception:', e
                 traceback.print_exc()

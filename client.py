@@ -232,7 +232,7 @@ class EchoClient(IntNStringReceiver):
 
 
     def process_data_others(self, meta, rev):
-        meta_rec = try_process_meta(meta)
+        meta_rec = self.try_process_meta(meta)
 
         if '<page>' in rev and '</page>' in rev:
             rev = rev[rev.find('<page>'):]

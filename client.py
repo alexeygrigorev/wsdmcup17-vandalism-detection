@@ -154,22 +154,10 @@ class EchoClient(IntNStringReceiver):
 
     def stringReceived(self, data):
         if self.meta is None:
-            try:
-                self.meta = data.decode('utf-8', 'ignore')
-            except Exception, e:
-                self.meta = '_,_,,,,,,,'
-                self.encode_error_meta = True
-                print >> sys.stderr, "cannot decode the meta input: %s" % self.meta
-                print >> sys.stderr, 'exception:', e
-                traceback.print_exc()
+            self.meta = data
         elif self.rev is None:
-            try:
-                self.rev = data.decode('utf-8', 'ignore')
-            except Exception, e:
-                self.encode_error_rev = True
-                print >> sys.stderr, "cannot decode the rev input: %s" % self.rev
-                print >> sys.stderr, 'exception:', e
-                traceback.print_exc()
+            self.rev = data
+
             try:
                 self.process_data(self.meta, self.rev)
                 self.meta = None
@@ -177,13 +165,16 @@ class EchoClient(IntNStringReceiver):
             except Exception, e:
                 self.transport.loseConnection()
                 print >> sys.stderr, 'got exception in stringReceived:', e
-            self.encode_error = False
         else:
             print >> sys.stderr, 'Unexpected state: both meta and rev are not None'
             self.transport.loseConnection()
 
+    def process_data(self, meta_in, rev_in):
+        meta = self.try_decode(meta_in)
+        rev = self.try_decode(rev_in)
 
-    def process_data(self, meta, rev):
+        rev_id_back = self.safe_id_extract(meta, rev)
+
         try:
             if self.first:
                 rev_id, score = self.process_data_first(meta, rev)
@@ -198,9 +189,14 @@ class EchoClient(IntNStringReceiver):
                 self.write('%s,%f' % (rev_id, score))
             else:
                 print >> sys.stderr, 'rev_id is None! something went wrong!'
-                print >> sys.stderr, 'meta:', meta
-                print >> sys.stderr, 'rev:', rev
-                self.transport.loseConnection()
+                print >> sys.stderr, 'meta:', repr(meta)
+                print >> sys.stderr, 'rev:', repr(rev)
+                if rev_id_back is not None:
+                    print >> sys.stderr, 'cannot process rev %s, predicting 0 for it' % rev_id_back 
+                    self.write('%s,%f' % (rev_id_back, 0))
+                else:
+                    print >> sys.stderr, 'cannot determine the revision id, stopping it' 
+                    self.transport.loseConnection()
 
         except Exception, e:
             print 'got exception in process_data:', e
@@ -211,7 +207,25 @@ class EchoClient(IntNStringReceiver):
             self.transport.loseConnection()
             raise e
 
+    def safe_id_extract(self, meta, rev):
+        if meta is not None:
+            return meta.split(',')[0]
+        if rev is not None:
+            id_pattern = re.compile(r'<id>(\d+)</id>')
+            ids = id_pattern.findall(rev)
+            if ids:
+                return ids[0]
+        print >> sys.stderr, 'safe_id_extract: cannot find revision id'
+        return None
 
+    def try_decode(self, str_in):
+        try:
+            res = str_in.decode('utf-8', 'ignore')
+            return res.replace(u'\ufffd', '')
+        except:
+            print >> sys.stderr, 'cannot decode', repr(str_in)
+            return None
+    
     def process_data_first(self, meta, rev):
         r = reader(StringIO(meta))
         self.meta_header = next(r)

@@ -135,6 +135,7 @@ class EchoClient(IntNStringReceiver):
     meta = None
     rev = None
     first = True
+    encode_error = False
 
     def connectionMade(self):
         print 'writing access_token'
@@ -157,7 +158,7 @@ class EchoClient(IntNStringReceiver):
             try:
                 self.meta = data.decode('utf-8', 'ignore')
             except Exception, e:
-                self.transport.loseConnection()
+                self.encode_error = True
                 print >> sys.stderr, "cannot decode the meta input: %s" % self.meta
                 print >> sys.stderr, 'exception:', e
                 traceback.print_exc()
@@ -165,7 +166,7 @@ class EchoClient(IntNStringReceiver):
             try:
                 self.rev = data.decode('utf-8', 'ignore')
             except Exception, e:
-                self.transport.loseConnection()
+                self.encode_error = True
                 print >> sys.stderr, "cannot decode the rev input: %s" % self.rev
                 print >> sys.stderr, 'exception:', e
                 traceback.print_exc()
@@ -176,6 +177,7 @@ class EchoClient(IntNStringReceiver):
             except Exception, e:
                 self.transport.loseConnection()
                 print >> sys.stderr, 'got exception in stringReceived:', e
+            self.encode_error = False
         else:
             print >> sys.stderr, 'Unexpected state: both meta and rev are not None'
             self.transport.loseConnection()
@@ -230,8 +232,7 @@ class EchoClient(IntNStringReceiver):
 
 
     def process_data_others(self, meta, rev):
-        meta_line = next(reader(StringIO(meta)))
-        meta_rec = dict(zip(self.meta_header, meta_line))
+        meta_rec = try_process_meta(meta)
 
         if '<page>' in rev and '</page>' in rev:
             rev = rev[rev.find('<page>'):]
@@ -248,6 +249,16 @@ class EchoClient(IntNStringReceiver):
 
         score = classifier(meta_rec, revision_rec)
         return rev_id, score
+
+    def try_process_meta(self, meta):
+        try:
+            meta_line = next(reader(StringIO(meta)))
+            meta_rec = dict(zip(self.meta_header, meta_line))
+            return meta_rec
+        except Exception, e:
+            print >> sys.stderr, 'cannot process meta information for some reason'
+            print >> sys.stderr, e
+            return {h: '' for h in self.meta_header}
 
 
 class EchoFactory(ClientFactory):

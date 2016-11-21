@@ -233,7 +233,7 @@ class EchoClient(IntNStringReceiver):
         meta_line = next(reader(StringIO(meta)))
         meta_rec = dict(zip(self.meta_header, meta_line))
 
-        if '</page>' in rev:
+        if '<page>' in rev and '</page>' in rev:
             rev = rev[rev.find('<page>'):]
             page = rev[:rev.find('<revision>')]
             self.last_page_rec = page_info(page)

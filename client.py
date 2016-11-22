@@ -165,8 +165,10 @@ class EchoClient(IntNStringReceiver):
             except Exception, e:
                 self.transport.loseConnection()
                 print >> sys.stderr, 'got exception in stringReceived:', e
+                print 'got exception in stringReceived:', e
         else:
             print >> sys.stderr, 'Unexpected state: both meta and rev are not None'
+            print 'Unexpected state: both meta and rev are not None'
             self.transport.loseConnection()
 
     def process_data(self, meta_in, rev_in):
@@ -191,11 +193,19 @@ class EchoClient(IntNStringReceiver):
                 print >> sys.stderr, 'rev_id is None! something went wrong!'
                 print >> sys.stderr, 'meta:', repr(meta)
                 print >> sys.stderr, 'rev:', repr(rev)
+                
+                print 'rev_id is None! something went wrong!'
+                print 'meta:', repr(meta)
+                print 'rev:', repr(rev)
+
                 if rev_id_back is not None:
                     print >> sys.stderr, 'cannot process rev %s, predicting 0 for it' % rev_id_back 
+                    print 'cannot process rev %s, predicting 0 for it' % rev_id_back 
+
                     self.write('%s,%f' % (rev_id_back, 0))
                 else:
                     print >> sys.stderr, 'cannot determine the revision id, stopping it' 
+                    print 'cannot determine the revision id, stopping it' 
                     self.transport.loseConnection()
 
         except Exception, e:
@@ -216,6 +226,7 @@ class EchoClient(IntNStringReceiver):
             if ids:
                 return ids[0]
         print >> sys.stderr, 'safe_id_extract: cannot find revision id'
+        print 'safe_id_extract: cannot find revision id'
         return None
 
     def try_decode(self, str_in):
@@ -225,7 +236,10 @@ class EchoClient(IntNStringReceiver):
         except Exception, e:
             print >> sys.stderr, 'cannot decode', repr(str_in)
             print >> sys.stderr, 'decoding exception:', e
+            print 'cannot decode', repr(str_in)
+            print 'decoding exception:', e
             return None
+        
     
     def process_data_first(self, meta, rev):
         r = reader(StringIO(meta))
@@ -273,6 +287,8 @@ class EchoClient(IntNStringReceiver):
         except Exception, e:
             print >> sys.stderr, 'cannot process meta information for some reason'
             print >> sys.stderr, e
+            print 'cannot process meta information for some reason', e
+
             return {h: '' for h in self.meta_header}
 
 

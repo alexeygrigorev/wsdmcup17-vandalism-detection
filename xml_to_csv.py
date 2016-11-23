@@ -79,9 +79,9 @@ def stream_pages(file_path):
 
 def convert_file(file_path):
     result_path = file_path.replace('/wdvc16', '/processed_wdvc16').replace('.xml', '.csv')
-    
+
     xml_pages = stream_pages(file_path)
-    
+
     fieldnames = [u'revision_id', u'revisions_in_group', u'revision_comment', u'revision_timestamp',
                   u'page_id', u'page_group', u'page_ns', u'page_title', 
                   u'anonimous_ip', u'user_id', u'username']
@@ -97,6 +97,7 @@ def convert_file(file_path):
 
 
 xml_files = sorted(glob('../data/wdvc16_*_*.xml'))
+
 for xml_file in xml_files:
     t0 = time()
     print 'processing file %s...' % xml_file

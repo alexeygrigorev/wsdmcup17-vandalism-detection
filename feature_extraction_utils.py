@@ -1,11 +1,6 @@
 import re
 
 
-def stringify_row(dit):
-    d = row.to_dict()
-    dict_str = ' '.join('%s=%s' % (k, v.replace(' ', '_')) for (k, v) in d.items() if v)
-    return dict_str
-
 def paths(tokens):
     all_paths = ['_'.join(tokens[0:(i+1)]) for i in range(len(tokens))]
     return ' '.join(all_paths)

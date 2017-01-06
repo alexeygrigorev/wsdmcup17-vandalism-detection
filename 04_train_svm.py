@@ -55,10 +55,6 @@ for C in [0.001, 0.01, 0.1, 0.5, 1, 5]:
     y_pred = svm.decision_function(X_val)
     auc = roc_auc_score(y_val, y_pred)
 
-    preds[C] = y_pred
-    aucs[C] = auc
-    models[C] = svm
-
     print 'C=%s, took %.3fs, auc=%.3f' % (C, time() - t0, auc)
 
 

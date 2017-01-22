@@ -2,6 +2,7 @@
 
 - Challenge webpage: http://www.wsdm-cup-2017.org/vandalism-detection.html
 - The goal of the competition is to predict whether a wikidata edit will be rolled back or not
+- Slides with the solution description: http://www.slideshare.net/AlexeyGrigorev/wsdm-cup-2017-vandalism-detection
 
 Running the solution: 
 
@@ -16,3 +17,4 @@ Running the solution:
     - vectorizer for creating a large one-hot-encoding matrix for all the string features
     - a linear SVM model with L1 penalty for performing the classification
 - `tira_client.py` is used for running the model on http://tira.io/
+

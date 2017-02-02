@@ -3,6 +3,7 @@
 - Challenge webpage: http://www.wsdm-cup-2017.org/vandalism-detection.html
 - The goal of the competition is to predict whether a wikidata edit will be rolled back or not
 - Slides with the solution description: http://www.slideshare.net/AlexeyGrigorev/wsdm-cup-2017-vandalism-detection
+- Video (in Russian): https://www.youtube.com/watch?v=cV1rqZG8mUY
 
 Running the solution: 
 

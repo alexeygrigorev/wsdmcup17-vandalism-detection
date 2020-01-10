@@ -22,7 +22,7 @@ def read_meta_data(filename):
     meta_nas = df.isnull().sum(axis=1)
 
     df = df[meta_nas != 7].reset_index(drop=1)
-    df.REVISION_ID = df_meta.REVISION_ID.astype('uint32')
+    df.REVISION_ID = df.REVISION_ID.astype('uint32')
     df.fillna('', inplace=1)
 
     del df['REVISION_SESSION_ID']
